@@ -37,12 +37,6 @@ function renderButtons() {
         stopTimeButton.addEventListener('click', () => stopTimer(buttonsContainer));
         buttonsContainer.appendChild(stopTimeButton);
 
-        const enterKeyButton = document.createElement('button');
-        enterKeyButton.classList.add('btn', 'btn-sm', 'ev-edit-time-anchor');
-        enterKeyButton.textContent = 'Enter Key';
-        enterKeyButton.addEventListener('click', () => accessKeyModal());
-        buttonsContainer.appendChild(enterKeyButton);
-
         assigneesSidebarItem.parentNode.insertBefore(buttonsContainer, assigneesSidebarItem.nextSibling);
       }
     }
@@ -203,6 +197,11 @@ function showActivityModal(buttonsContainer) {
       });
     })
     .catch(error => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Error saving time entry. Please try again.'
+      });
       console.error('Error loading activity modal:', error);
     });
 }

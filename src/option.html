@@ -8,6 +8,7 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
+      text-align: center;
     }
 
     .popup-container {
@@ -19,10 +20,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      text-align: center;
     }
 
     .popup-title {
+      text-align: center;
       font-size: 18px;
       font-weight: bold;
     }
@@ -38,33 +41,24 @@
       color: white;
       font-size: 20px;
       text-align: center;
-      line-height: 30px;
       cursor: pointer;
     }
 
-    .close:hover {
+    .popup-close:hover {
       background-color: darkred;
     }
 
     .popup-form {
       display: flex;
       flex-direction: column;
+
     }
 
     .popup-input {
-      margin-bottom: 8px;
+      margin-bottom: 15px;
       padding: 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
-    }
-
-    .popup-textarea {
-      margin-bottom: 8px;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      resize: vertical;
-      min-height: 60px;
     }
 
     .popup-button {
@@ -75,19 +69,20 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    .popup-button:hover {
+      background-color: #09802a;
+    }
   </style>
 </head>
 <body>
   <div id="popup-root">
     <div class="popup-container">
       <div class="popup-header">
-        <h2 class="popup-title">Report Time</h2>
+        <h2 class="popup-title">Enter Access Key</h2>
         <button class="popup-close" id="popup-close">&times;</button>
       </div>
       <form class="popup-form" id="popup-form">
-        <input type="text" class="popup-input" id="time-input" placeholder="Time spent (e.g., 1h 30m)" required>
-        <input type="text" class="popup-input" id="date-input" placeholder="Date (e.g., YYYY-MM-DD)" required>
-        <textarea class="popup-textarea" id="comment-input" placeholder="Comment"></textarea>
+        <input type="text" class="popup-input" id="key-input" placeholder="Enter your access key" required>
         <button type="submit" class="popup-button">Save</button>
       </form>
     </div>

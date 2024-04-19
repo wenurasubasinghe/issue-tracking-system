@@ -5,34 +5,17 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(event) {
       event.preventDefault();
   
-      const timeInput = document.getElementById('time-input');
-      const dateInput = document.getElementById('date-input');
-      const commentInput = document.getElementById('comment-input');
+      const keyInput = document.getElementById('key-input');
   
-      const timeSpent = timeInput.value;
-      const dateString = dateInput.value;
-      const comment = commentInput.value;
+      const accessKey = keyInput.value.trim();
   
-      if (!timeSpent || !dateString) {
-        alert('Please enter the time spent and date.');
-        return;
+      if (accessKey != null) {
+        localStorage.setItem('accessKey', accessKey);
+        form.style.display = 'none';
+        alert('Access key saved successfully');
+      } else {
+        alert('Please enter your access key.');
       }
-  
-      chrome.runtime.sendMessage({
-        action: 'saveTimeEntry',
-        data: {
-          timeSpent,
-          dateString,
-          comment
-        }
-      }, function(response) {
-        if (response.success) {
-          alert('Time entry saved successfully!');
-          form.reset();
-        } else {
-          alert('Error saving time entry. Please try again.');
-        }
-      });
     });
   
     closeButton.addEventListener('click', function() {
