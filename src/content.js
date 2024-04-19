@@ -1,6 +1,13 @@
+import { accessKeyModal } from "./enter-key-modal";
+
 const apiBaseUrl = 'http://localhost:3010';
-const authToken = 'eyJraWQiOiIyUGo2OFlRRkViRkhBMGIxdnR5TXpCSk5xelpyaVNLbXhqNGNVRmpoU3VRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIxMTczZGQyYS0yMDgxLTcwYTYtMWMyYS1hZGU1OTc0ZThhZDkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmFwLXNvdXRoLTEuYW1hem9uYXdzLmNvbVwvYXAtc291dGgtMV9reVlDWVNJa0IiLCJjb2duaXRvOnVzZXJuYW1lIjoiMTE3M2RkMmEtMjA4MS03MGE2LTFjMmEtYWRlNTk3NGU4YWQ5IiwicHJlZmVycmVkX3VzZXJuYW1lIjoic3NobmlybythZG1pbkBnbWFpbC5jb20iLCJvcmlnaW5fanRpIjoiYTc3MDZlOTUtZDBkOS00Y2NlLTlhZmQtMTRhYmNlZDI2NGYxIiwiYXVkIjoiNHF0aHM2NGxta2VxZGZpaTMyNGRrcm9ka2QiLCJldmVudF9pZCI6ImRiNDFlYmFmLWI3ODUtNGNjZS04ZjYxLTIxYWY4MmRkYTNhMyIsImN1c3RvbTpwZXJtaXNzaW9uX2dyb3VwcyI6IjEyIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3MTI3MjQwNjEsImN1c3RvbTp0ZW5hbnQiOiJsb2NhbGhvc3QiLCJleHAiOjE3MTMyNzM1MDIsImN1c3RvbTp1c2VyX3R5cGUiOiJBRE1JTiIsImlhdCI6MTcxMzI3MzIwMiwianRpIjoiYTdjMmMxODItODFiZC00OTUwLTlhZDYtMGI1Y2Y2Yjc1Y2U0IiwiZW1haWwiOiJzc2huaXJvK2FkbWluQGdtYWlsLmNvbSJ9.MB7xOay75-NbH5XjLk1MU9UwV8PSKTee_oa_P7_dZzdmhjMyuKhi-LO6TrJ7VwU7tZd6ON8CWgpaRqTmxL7BIgb1U8i9hYad_1LtxM-Eo2unZURayZk0w-NMxD427J38UIMdsFEMMS60FBUHKy4kBpmcRsJR0b4lgOHt9cNMk-by8RqDHFjgLF6Rwck9r4CLA_LQe2KBmBe6oMqsQBHXpkvOkNJlle8OyeRNHjDkLCcMyuSSXrTeLjNknAtKwu9XX19Yc9zDl1yGV6-wlVVwBaEFEvuWVKvERiJ06Xdvgzv5oDu-yaLsEyhOY8723kyhwPaEIKnzNn8DIP2U6ZzEpw';
 let timerInterval;
+let isFirstClick = true;
+
+export const activityTypes = {
+  'Lunch': 1,
+  'Meeting': 2
+};
 
 function renderButtons() {
   setTimeout(() => {
@@ -30,10 +37,11 @@ function renderButtons() {
         stopTimeButton.addEventListener('click', () => stopTimer(buttonsContainer));
         buttonsContainer.appendChild(stopTimeButton);
 
-        const editTimeButton = document.createElement('button');
-        editTimeButton.classList.add('btn', 'btn-sm', 'ev-edit-time-anchor');
-        editTimeButton.textContent = 'Edit Time';
-        buttonsContainer.appendChild(editTimeButton);
+        const enterKeyButton = document.createElement('button');
+        enterKeyButton.classList.add('btn', 'btn-sm', 'ev-edit-time-anchor');
+        enterKeyButton.textContent = 'Enter Key';
+        enterKeyButton.addEventListener('click', () => accessKeyModal());
+        buttonsContainer.appendChild(enterKeyButton);
 
         assigneesSidebarItem.parentNode.insertBefore(buttonsContainer, assigneesSidebarItem.nextSibling);
       }
@@ -62,23 +70,26 @@ const urlChangeObserver = new MutationObserver(() => {
 urlChangeObserver.observe(document.body, { childList: true, subtree: true });
 
 function startTimer(buttonsContainer) {
+  if (isFirstClick) {
+    showActivityModal(buttonsContainer);
+    return;
+  }
+
   if (timerInterval) {
     console.log('Timer is already running.');
     return;
   }
-  saveIssueId();
 
-  fetch(`${apiBaseUrl}/employee-tracker/`, {
+  fetch(`${apiBaseUrl}/extension/employee-tracker`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-      'x-Tenant': 'localhost'
+      'Access-Key': `${localStorage.getItem('accessKey')}`
     },
     body: JSON.stringify({
       action: "START_ACTIVITY",
-      activityTypeId: 2,
-      employeeId: localStorage.getItem('githubIssueId'),
+      activityTypeId: localStorage.getItem('selectedActivityTypeId'),
+      employeeId: null,
       id: null,
       state: null,
       timestamp: null,
@@ -86,11 +97,12 @@ function startTimer(buttonsContainer) {
   })
     .then(response => response.json())
     .then(data => {
-      localStorage.setItem('activityTypeId', data.activityTypeId);
+      localStorage.setItem('entryData', data);
       showTimer(buttonsContainer);
     })
     .catch(error => {
       console.error('Error starting timer:', error);
+      isFirstClick=true;
     });
 }
 
@@ -110,30 +122,17 @@ function showTimer(buttonsContainer) {
   }
 }
 
-function getIssueIdFromUrl() {
-  const url = window.location.href;
-  const regex = /\/issues\/(\d+)/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}
-
-function saveIssueId() {
-  const issueId = getIssueIdFromUrl();
-  localStorage.setItem('githubIssueId', issueId);
-}
-
 function stopTimer(buttonsContainer) {
-  fetch(`${apiBaseUrl}/employee-tracker/`, {
+  fetch(`${apiBaseUrl}/extension/employee-tracker`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-      'x-Tenant': 'localhost'
+      'Content-Type': 'application/json', 
+      'Access-Key': `${localStorage.getItem('accessKey')}`
     },
     body: JSON.stringify({
       action: "END_ACTIVITY",
-      activityTypeId: localStorage.getItem('activityTypeId'),
-      employeeId: localStorage.getItem('githubIssueId'),
+      activityTypeId: localStorage.getItem('selectedActivityTypeId'),
+      employeeId: null,
       id: null,
       state: null,
       timestamp: null,
@@ -153,8 +152,57 @@ function stopTimer(buttonsContainer) {
     .catch(error => {
       console.error('Error stopping timer:', error);
     });
+    isFirstClick = true;
 }
 
 function saveTimeEntry(entryData) {
+  //Todo- need to implement
   console.log('Time entry saved:', entryData);
+}
+
+function showActivityModal(buttonsContainer) {
+  fetch(chrome.runtime.getURL('activity-modal.html'))
+    .then(response => response.text())
+    .then(html => {
+      const modal = document.createElement('div');
+      modal.innerHTML = html;
+      document.body.appendChild(modal);
+
+      const activityModal = document.getElementById('activityModal');
+      const closeBtn = activityModal.querySelector('.close');
+      const selectActivityBtn = document.getElementById('selectActivityBtn');
+      const activityTypeSelect = document.getElementById('activityTypeSelect');
+
+      const defaultOption = document.createElement('option');
+      defaultOption.value = "";
+      defaultOption.textContent = "Select option";
+      activityTypeSelect.appendChild(defaultOption);
+
+      Object.entries(activityTypes).forEach(([activity, typeId]) => {
+        const option = document.createElement('option');
+        option.value = typeId;
+        option.textContent = activity;
+        activityTypeSelect.appendChild(option);
+      });
+
+      activityModal.style.display = 'block';
+
+      closeBtn.addEventListener('click', () => {
+        activityModal.style.display = 'none';
+        document.body.removeChild(modal);
+      });
+
+      selectActivityBtn.addEventListener('click', () => {
+        const activityTypeSelect = document.getElementById('activityTypeSelect');
+        const selectedActivityTypeId = activityTypeSelect.value;
+        localStorage.setItem('selectedActivityTypeId', selectedActivityTypeId);
+        activityModal.style.display = 'none';
+        document.body.removeChild(modal);
+        isFirstClick = false;
+        startTimer(buttonsContainer);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading activity modal:', error);
+    });
 }
