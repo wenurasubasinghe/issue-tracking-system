@@ -1,12 +1,17 @@
 import { accessKeyModal } from "./enter-key-modal";
 
-const apiBaseUrl = 'http://localhost:3010';
+const apiBaseUrl = 'http://localhost:3010/external-intergrations/employee-tracker';
 let timerInterval;
 let isFirstClick = true;
 
 export const activityTypes = {
   'Lunch': 1,
   'Meeting': 2
+};
+
+const activityDetails = {
+  startTime: null,
+  endTime: null
 };
 
 function renderButtons() {
@@ -73,8 +78,12 @@ function startTimer(buttonsContainer) {
     console.log('Timer is already running.');
     return;
   }
+  const activityId = getIdFromUrl();
+  localStorage.setItem('activityID', activityId);
+  const taskDescription = prompt('Enter your task description');
+  localStorage.setItem('taskDescription', taskDescription);
 
-  fetch(`${apiBaseUrl}/extension/employee-tracker`, {
+  fetch(`${apiBaseUrl}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -84,14 +93,17 @@ function startTimer(buttonsContainer) {
       action: "START_ACTIVITY",
       activityTypeId: localStorage.getItem('selectedActivityTypeId'),
       employeeId: null,
-      id: null,
-      state: null,
-      timestamp: null,
+      additionalTaskDetails: {
+        taskId: activityId,
+        description: taskDescription,
+        timeSpent: null
+      }
     })
   })
     .then(response => response.json())
     .then(data => {
       localStorage.setItem('entryData', data);
+      activityDetails.startTime = new Date().toISOString();
       showTimer(buttonsContainer);
     })
     .catch(error => {
@@ -117,19 +129,24 @@ function showTimer(buttonsContainer) {
 }
 
 function stopTimer(buttonsContainer) {
-  fetch(`${apiBaseUrl}/extension/employee-tracker`, {
+  activityDetails.endTime = new Date().toISOString();
+  const duration = calculateDuration(activityDetails);
+
+  fetch(`${apiBaseUrl}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json', 
       'Access-Key': `${localStorage.getItem('accessKey')}`
     },
     body: JSON.stringify({
-      action: "END_ACTIVITY",
+      action: "START_ACTIVITY",
       activityTypeId: localStorage.getItem('selectedActivityTypeId'),
       employeeId: null,
-      id: null,
-      state: null,
-      timestamp: null,
+      additionalTaskDetails: {
+        taskId: localStorage.getItem('activityID'),
+        description: "Implement GitHub issue time tracker feature",
+        timeSpent: duration
+      }
     })
   })
     .then(response => response.json())
@@ -141,17 +158,11 @@ function stopTimer(buttonsContainer) {
       if (startButton) {
         startButton.textContent = 'Start Timer';
       }
-      saveTimeEntry(entryData);
     })
     .catch(error => {
       console.error('Error stopping timer:', error);
     });
     isFirstClick = true;
-}
-
-function saveTimeEntry(entryData) {
-  //Todo- need to implement
-  console.log('Time entry saved:', entryData);
 }
 
 function showActivityModal(buttonsContainer) {
@@ -204,4 +215,27 @@ function showActivityModal(buttonsContainer) {
       });
       console.error('Error loading activity modal:', error);
     });
+}
+
+function calculateDuration(timePeriods) {
+  const start = new Date(timePeriods.startTime);
+    const end = new Date(timePeriods.endTime);
+    const diffInMilliseconds = end.getTime() - start.getTime();
+    return diffInMilliseconds;
+}
+
+function getIdFromUrl() {
+  const url = window.location.href;
+  const issueRegex = /\/issues\/(\d+)/;
+  const pullRequestRegex = /\/pull\/(\d+)/;
+  const issueMatch = url.match(issueRegex);
+  const pullRequestMatch = url.match(pullRequestRegex);
+  
+  if (issueMatch) {
+    return issueMatch[1];
+  } else if (pullRequestMatch) {
+    return pullRequestMatch[1];
+  } else {
+    return null;
+  }
 }
