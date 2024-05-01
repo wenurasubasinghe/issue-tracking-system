@@ -1,0 +1,54 @@
+/* notification.css */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+  
+  .notification {
+    position: relative;
+    padding: 15px 20px;
+    color: #fff;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+  }
+  
+  .notification-info {
+    background-color: #2196f3;
+  }
+  
+  .notification-success {
+    background-color: #4caf50;
+  }
+  
+  .notification-error {
+    background-color: #f44336;
+  }
+  
+  .notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .notification-progress-bar {
+    height: 100%;
+    background-color: #fff;
+    width: 100%;
+    transform-origin: left;
+    animation: progress-bar 3s linear;
+  }
+  
+  @keyframes progress-bar {
+    0% {
+      transform: scaleX(1);
+    }
+    100% {
+      transform: scaleX(0);
+    }
+  }

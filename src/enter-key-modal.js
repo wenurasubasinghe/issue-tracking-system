@@ -15,9 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (accessKey !== '') {
         localStorage.setItem('accessKey', accessKey);
         accessKeyModal.style.display = 'none';
-        alert('Access key saved successfully');
+        showNotification('Access key saved successfully', 'success');
       } else {
-        alert('Please enter your access key.');
+        showNotification('Please enter your access key.', 'error');
       }
     });
   });

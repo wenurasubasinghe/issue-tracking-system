@@ -1,3 +1,6 @@
+import './notification.css';
+import { showNotification } from './notification';
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('popup-form');
     const closeButton = document.getElementById('popup-close');
@@ -12,9 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (accessKey != null) {
         localStorage.setItem('accessKey', accessKey);
         form.style.display = 'none';
-        alert('Access key saved successfully');
+        showNotification('Access key saved successfully', 'success');
       } else {
-        alert('Please enter your access key.');
+        showNotification('Please enter your access key.', 'error');
       }
     });
   

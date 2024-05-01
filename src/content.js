@@ -1,4 +1,6 @@
 import { accessKeyModal } from "./enter-key-modal";
+import './notification.css';
+import { showNotification } from './notification';
 
 const apiBaseUrl = 'http://localhost:3010/external-intergrations/employee-tracker';
 let timerInterval;
@@ -68,48 +70,55 @@ const urlChangeObserver = new MutationObserver(() => {
 
 urlChangeObserver.observe(document.body, { childList: true, subtree: true });
 
-function startTimer(buttonsContainer) {
+async function startTimer(buttonsContainer) {
   if (isFirstClick) {
     showActivityModal(buttonsContainer);
     return;
   }
 
   if (timerInterval) {
+    showNotification('Timer is already running', 'error')
     console.log('Timer is already running.');
     return;
   }
+
   const activityId = getIdFromUrl();
   localStorage.setItem('activityID', activityId);
   const taskDescription = prompt('Enter your task description');
   localStorage.setItem('taskDescription', taskDescription);
 
-  fetch(`${apiBaseUrl}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Key': `${localStorage.getItem('accessKey')}`
-    },
-    body: JSON.stringify({
-      action: "START_ACTIVITY",
-      activityTypeId: localStorage.getItem('selectedActivityTypeId'),
-      employeeId: null,
-      additionalTaskDetails: {
-        taskId: activityId,
-        description: taskDescription,
-        timeSpent: null
-      }
-    })
-  })
-    .then(response => response.json())
-    .then(data => {
-      localStorage.setItem('entryData', data);
-      activityDetails.startTime = new Date().toISOString();
-      showTimer(buttonsContainer);
-    })
-    .catch(error => {
-      console.error('Error starting timer:', error);
-      isFirstClick=true;
+  try {
+    const response = await fetch(`${apiBaseUrl}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Key': `${localStorage.getItem('accessKey')}`
+      },
+      body: JSON.stringify({
+        action: "START_ACTIVITY",
+        activityTypeId: localStorage.getItem('selectedActivityTypeId'),
+        employeeId: null,
+        additionalTaskDetails: {
+          taskId: activityId,
+          description: taskDescription,
+          timeSpent: null,
+          taskUrl: localStorage.getItem('url')
+        }
+      })
     });
+
+    if (!response.ok) {
+      showNotification('Failed to start the timer!', 'error');
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    showNotification('Timer starts successfully!', 'success');
+    activityDetails.startTime = new Date().toISOString();
+    showTimer(buttonsContainer);
+  } catch (error) {
+    console.error('Error starting timer:', error);
+    showNotification('Failed to start the timer!', 'error');
+    isFirstClick = true;
+  }
 }
 
 function showTimer(buttonsContainer) {
@@ -128,41 +137,44 @@ function showTimer(buttonsContainer) {
   }
 }
 
-function stopTimer(buttonsContainer) {
+async function stopTimer(buttonsContainer) {
   activityDetails.endTime = new Date().toISOString();
   const duration = calculateDuration(activityDetails);
 
-  fetch(`${apiBaseUrl}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json', 
-      'Access-Key': `${localStorage.getItem('accessKey')}`
-    },
-    body: JSON.stringify({
-      action: "START_ACTIVITY",
-      activityTypeId: localStorage.getItem('selectedActivityTypeId'),
-      employeeId: null,
-      additionalTaskDetails: {
-        taskId: localStorage.getItem('activityID'),
-        description: "Implement GitHub issue time tracker feature",
-        timeSpent: duration
-      }
-    })
-  })
-    .then(response => response.json())
-    .then(data => {
-      const entryData = data;
-      clearInterval(timerInterval);
+  try {
+    const response = await fetch(`${apiBaseUrl}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'Access-Key': `${localStorage.getItem('accessKey')}`
+      },
+      body: JSON.stringify({
+        action: "START_ACTIVITY",
+        activityTypeId: localStorage.getItem('selectedActivityTypeId'),
+        employeeId: null,
+        additionalTaskDetails: {
+          taskId: localStorage.getItem('activityID'),
+          description: "Implement GitHub issue time tracker feature",
+          timeSpent: duration,
+          taskUrl: localStorage.getItem('url')
+        }
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    showNotification('Timer stops successfully!', 'success');
+    clearInterval(timerInterval);
       timerInterval = null;
       const startButton = buttonsContainer.querySelector('.ev-btn-start');
       if (startButton) {
         startButton.textContent = 'Start Timer';
       }
-    })
-    .catch(error => {
-      console.error('Error stopping timer:', error);
-    });
+  } catch (error) {
+    showNotification('Error stopping timer!', 'error');
+    console.error('Error stopping timer:', error);
     isFirstClick = true;
+  }
 }
 
 function showActivityModal(buttonsContainer) {
@@ -208,11 +220,7 @@ function showActivityModal(buttonsContainer) {
       });
     })
     .catch(error => {
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Error saving time entry. Please try again.'
-      });
+      showNotification('Error loading activity modal', 'error');
       console.error('Error loading activity modal:', error);
     });
 }
@@ -221,11 +229,17 @@ function calculateDuration(timePeriods) {
   const start = new Date(timePeriods.startTime);
     const end = new Date(timePeriods.endTime);
     const diffInMilliseconds = end.getTime() - start.getTime();
-    return diffInMilliseconds;
+    const hours = Math.floor(diffInMilliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((diffInMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+
+    const duration = `PT${hours}H${minutes}M`;
+
+    return duration;
 }
 
 function getIdFromUrl() {
   const url = window.location.href;
+  localStorage.setItem('url', url);
   const issueRegex = /\/issues\/(\d+)/;
   const pullRequestRegex = /\/pull\/(\d+)/;
   const issueMatch = url.match(issueRegex);

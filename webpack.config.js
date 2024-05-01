@@ -8,6 +8,14 @@ module.exports = {
     content: './src/content.js',
     options: './src/option.js',
   },
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+    ],
+  },
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
@@ -21,6 +29,8 @@ module.exports = {
         { from: 'src/enter-key-modal.html', to: 'enter-key-modal.html' },
         { from: 'src/enter-key-modal.js', to: 'enter-key-modal.js' },
         { from: 'manifest.json', to: 'manifest.json' },
+        { from: 'src/notification.js', to: 'notification.js' },
+        { from: 'src/notification.css', to: 'notification.css' },
       ],
     }),
   ],
