@@ -1,3 +1,3 @@
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('enter-key-modal.html') });
-  });
+  chrome.tabs.create({ url: chrome.runtime.getURL('description.html') });
+});

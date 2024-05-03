@@ -31,6 +31,7 @@ module.exports = {
         { from: 'manifest.json', to: 'manifest.json' },
         { from: 'src/notification.js', to: 'notification.js' },
         { from: 'src/notification.css', to: 'notification.css' },
+        { from: 'src/description.html', to: 'description.html' },
       ],
     }),
   ],

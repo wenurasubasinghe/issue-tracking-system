@@ -16,6 +16,9 @@ const activityDetails = {
   endTime: null
 };
 
+localStorage.setItem('accessKey', '');
+
+
 function renderButtons() {
   setTimeout(() => {
     const sidebarContainer = document.querySelector('#partial-discussion-sidebar');
@@ -71,6 +74,13 @@ const urlChangeObserver = new MutationObserver(() => {
 urlChangeObserver.observe(document.body, { childList: true, subtree: true });
 
 async function startTimer(buttonsContainer) {
+  const accessKey = localStorage.getItem('accessKey');
+
+  if (!accessKey) {
+    showEnterKeyModal(buttonsContainer);
+    return;
+  }
+
   if (isFirstClick) {
     showActivityModal(buttonsContainer);
     return;
@@ -86,13 +96,15 @@ async function startTimer(buttonsContainer) {
   localStorage.setItem('activityID', activityId);
   const taskDescription = prompt('Enter your task description');
   localStorage.setItem('taskDescription', taskDescription);
+  
+
 
   try {
     const response = await fetch(`${apiBaseUrl}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Key': `${localStorage.getItem('accessKey')}`
+        'X-Secret-Key': `${localStorage.getItem('accessKey')}`
       },
       body: JSON.stringify({
         action: "START_ACTIVITY",
@@ -108,7 +120,7 @@ async function startTimer(buttonsContainer) {
     });
 
     if (!response.ok) {
-      showNotification('Failed to start the timer!', 'error');
+      showNotification(response.message, 'error');
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     showNotification('Timer starts successfully!', 'success');
@@ -116,7 +128,7 @@ async function startTimer(buttonsContainer) {
     showTimer(buttonsContainer);
   } catch (error) {
     console.error('Error starting timer:', error);
-    showNotification('Failed to start the timer!', 'error');
+    showNotification(`${error}`, 'error');
     isFirstClick = true;
   }
 }
@@ -146,15 +158,15 @@ async function stopTimer(buttonsContainer) {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'Access-Key': `${localStorage.getItem('accessKey')}`
+        'X-Secret-Key': `${localStorage.getItem('accessKey')}`
       },
       body: JSON.stringify({
-        action: "START_ACTIVITY",
+        action: "END_ACTIVITY",
         activityTypeId: localStorage.getItem('selectedActivityTypeId'),
         employeeId: null,
         additionalTaskDetails: {
           taskId: localStorage.getItem('activityID'),
-          description: "Implement GitHub issue time tracker feature",
+          description: "",
           timeSpent: duration,
           taskUrl: localStorage.getItem('url')
         }
@@ -225,16 +237,73 @@ function showActivityModal(buttonsContainer) {
     });
 }
 
+function showEnterKeyModal(buttonsContainer) {
+  fetch(chrome.runtime.getURL('enter-key-modal.html'))
+    .then(response => response.text())
+    .then(html => {
+      const modal = document.createElement('div');
+      modal.innerHTML = html;
+      document.body.appendChild(modal);
+
+      const accessKeyModal = document.getElementById('accessKeyModal');
+      const closeBtn = accessKeyModal.querySelector('.close');
+      const confirmAccessKey = document.getElementById('confirmAccessKey');
+      const accessKeyInput = document.getElementById('accessKeyInput');
+
+      accessKeyModal.style.display = 'block';
+
+      closeBtn.addEventListener('click', () => {
+        accessKeyModal.style.display = 'none';
+        document.body.removeChild(modal);
+      });
+
+      confirmAccessKey.addEventListener('click', () => {
+        const accessKey = accessKeyInput.value.trim();
+        if (accessKey !== '') {
+          localStorage.setItem('accessKey', accessKey);
+          accessKeyModal.style.display = 'none';
+          document.body.removeChild(modal);
+          showNotification('Access key saved successfully', 'success');
+          startTimer(buttonsContainer);
+        } else {
+          showNotification('Please enter your access key.', 'error');
+        }
+      });
+    })
+    .catch(error => {
+      showNotification('Error loading access key modal', 'error');
+      console.error('Error loading access key modal:', error);
+    });
+}
+
 function calculateDuration(timePeriods) {
   const start = new Date(timePeriods.startTime);
-    const end = new Date(timePeriods.endTime);
-    const diffInMilliseconds = end.getTime() - start.getTime();
-    const hours = Math.floor(diffInMilliseconds / (1000 * 60 * 60));
-    const minutes = Math.floor((diffInMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+  const end = new Date(timePeriods.endTime);
+  const diffInMilliseconds = end.getTime() - start.getTime();
 
-    const duration = `PT${hours}H${minutes}M`;
+  const days = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffInMilliseconds % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diffInMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
 
-    return duration;
+  let duration = '';
+
+  if (days > 0) {
+    duration += `${days}D`;
+  }
+
+  if (hours > 0) {
+    duration += `${hours}H`;
+  }
+
+  if (minutes > 0) {
+    duration += `${minutes}M`;
+  }
+
+  if (duration === '') {
+    duration = '0M';
+  }
+
+  return `PT${duration}`;
 }
 
 function getIdFromUrl() {
